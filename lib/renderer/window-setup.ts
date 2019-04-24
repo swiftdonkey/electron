@@ -1,4 +1,5 @@
 import { ipcRendererInternal } from '@electron/internal/renderer/ipc-renderer-internal'
+import * as ipcRendererUtils from '@electron/internal/renderer/ipc-renderer-internal-utils'
 
 // This file implements the following APIs:
 // - window.history.back()
@@ -81,9 +82,7 @@ class LocationProxy {
           // It's right, that's bad, but we're doing it anway.
           (guestURL as any)[propertyKey] = newVal
 
-          return this.ipcRenderer.sendSync(
-            'ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD_SYNC',
-            this.guestId, 'loadURL', guestURL.toString())
+          return this._invokeWebContentsMethodSync('loadURL', guestURL.toString())
         }
       }
     })
@@ -102,14 +101,18 @@ class LocationProxy {
   }
 
   private getGuestURL (): URL | null {
-    const urlString = ipcRendererInternal.sendSync('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD_SYNC', this.guestId, 'getURL')
     try {
+      const urlString = this._invokeWebContentsMethodSync('getURL') as string
       return new URL(urlString)
-    } catch (e) {
-      console.error('LocationProxy: failed to parse string', urlString, e)
+    } catch (error) {
+      console.error(`LocationProxy: ${error}`)
     }
 
     return null
+  }
+
+  private _invokeWebContentsMethodSync (method: string, ...args: any[]) {
+    return ipcRendererUtils.invokeSync('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD', this.guestId, method, ...args)
   }
 }
 
@@ -127,7 +130,7 @@ class BrowserWindowProxy {
   }
   public set location (url: string | any) {
     url = resolveURL(url)
-    ipcRendererInternal.sendSync('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD_SYNC', this.guestId, 'loadURL', url)
+    this._invokeWebContentsMethodSync('loadURL', url)
   }
 
   constructor (guestId: number) {
@@ -141,27 +144,39 @@ class BrowserWindowProxy {
   }
 
   public close () {
-    ipcRendererInternal.send('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_CLOSE', this.guestId)
+    this._invokeWindowMethod('close')
   }
 
   public focus () {
-    ipcRendererInternal.send('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_METHOD', this.guestId, 'focus')
+    this._invokeWindowMethod('focus')
   }
 
   public blur () {
-    ipcRendererInternal.send('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_METHOD', this.guestId, 'blur')
+    this._invokeWindowMethod('blur')
   }
 
   public print () {
-    ipcRendererInternal.send('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD', this.guestId, 'print')
+    this._invokeWebContentsMethod('print')
   }
 
   public postMessage (message: any, targetOrigin: any) {
-    ipcRendererInternal.send('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_POSTMESSAGE', this.guestId, message, toString(targetOrigin), window.location.origin)
+    ipcRendererUtils.invoke('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_POSTMESSAGE', this.guestId, message, toString(targetOrigin), window.location.origin)
   }
 
-  public eval (...args: any[]) {
-    ipcRendererInternal.send('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD', this.guestId, 'executeJavaScript', ...args)
+  public eval (code: string) {
+    ipcRendererUtils.invoke('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_EVAL', this.guestId, code)
+  }
+
+  private _invokeWindowMethod (method: string, ...args: any[]) {
+    return ipcRendererUtils.invoke('ELECTRON_GUEST_WINDOW_MANAGER_WINDOW_METHOD', this.guestId, method, ...args)
+  }
+
+  private _invokeWebContentsMethod (method: string, ...args: any[]) {
+    return ipcRendererUtils.invoke('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD', this.guestId, method, ...args)
+  }
+
+  private _invokeWebContentsMethodSync (method: string, ...args: any[]) {
+    return ipcRendererUtils.invokeSync('ELECTRON_GUEST_WINDOW_MANAGER_WEB_CONTENTS_METHOD', this.guestId, method, ...args)
   }
 }
 
