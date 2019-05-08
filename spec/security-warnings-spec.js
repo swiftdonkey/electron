@@ -1,4 +1,6 @@
-const assert = require('assert')
+const chai = require('chai')
+const dirtyChai = require('dirty-chai')
+
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
@@ -8,6 +10,9 @@ const { remote } = require('electron')
 const { BrowserWindow } = remote
 
 const { closeWindow } = require('./window-helpers')
+
+const { expect } = chai
+chai.use(dirtyChai)
 
 describe('security warnings', () => {
   let server
@@ -66,7 +71,7 @@ describe('security warnings', () => {
       }
     })
     w.webContents.once('console-message', (e, level, message) => {
-      assert(message.includes('Node.js Integration with Remote Content'), message)
+      expect(message.includes('Node.js Integration with Remote Content')).to.be.true()
       done()
     })
 
@@ -84,7 +89,7 @@ describe('security warnings', () => {
           }
         })
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('Disabled webSecurity'), message)
+          expect(message.includes('Disabled webSecurity')).to.be.true()
           done()
         })
 
@@ -98,7 +103,7 @@ describe('security warnings', () => {
         })
 
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('Insecure Content-Security-Policy'), message)
+          expect(message.includes('Insecure Content-Security-Policy')).to.be.true()
           done()
         })
 
@@ -115,7 +120,7 @@ describe('security warnings', () => {
           }
         })
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('allowRunningInsecureContent'), message)
+          expect(message.includes('allowRunningInsecureContent')).to.be.true()
           done()
         })
 
@@ -131,7 +136,7 @@ describe('security warnings', () => {
           }
         })
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('experimentalFeatures'), message)
+          expect(message.includes('experimentalFeatures')).to.be.true()
           done()
         })
 
@@ -147,7 +152,7 @@ describe('security warnings', () => {
           }
         })
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('enableBlinkFeatures'), message)
+          expect(message.includes('enableBlinkFeatures')).to.be.true()
           done()
         })
 
@@ -160,7 +165,7 @@ describe('security warnings', () => {
           webPreferences
         })
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('allowpopups'), message)
+          expect(message.includes('allowpopups')).to.be.true()
           done()
         })
 
@@ -173,7 +178,7 @@ describe('security warnings', () => {
           webPreferences
         })
         w.webContents.once('console-message', (e, level, message) => {
-          assert(message.includes('Insecure Resources'), message)
+          expect(message.includes('Insecure Resources')).to.be.true()
           done()
         })
 
